@@ -66,6 +66,16 @@ public abstract class BasePage {
         recoverFromOverload();
     }
 
+    /**
+     * Dispatches the click directly on the element. Use only where a hover effect
+     * deterministically covers the target (a native click would land on the overlay).
+     */
+    protected void jsClick(By locator) {
+        WebElement element = wait.until(ExpectedConditions.presenceOfElementLocated(locator));
+        scrollIntoView(element);
+        ((JavascriptExecutor) driver).executeScript("arguments[0].click();", element);
+    }
+
     protected void type(By locator, String text) {
         WebElement element = visible(locator);
         scrollIntoView(element);

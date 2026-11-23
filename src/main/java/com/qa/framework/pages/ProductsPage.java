@@ -63,7 +63,9 @@ public class ProductsPage extends BasePage {
     }
 
     private void clickAddToCart(int productId) {
-        click(By.cssSelector(".productinfo a.add-to-cart[data-product-id='" + productId + "']"));
+        // Hovering a product card slides .product-overlay over this button. In Firefox the native
+        // click lands on the overlay and is silently lost, so dispatch the click on the button itself.
+        jsClick(By.cssSelector(".productinfo a.add-to-cart[data-product-id='" + productId + "']"));
         visible(MODAL_CONTINUE);
     }
 }
