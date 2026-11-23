@@ -21,9 +21,13 @@
         <jackson.version>2.23.0</jackson.version>
         <datafaker.version>2.7.0</datafaker.version>
         <log4j.version>2.26.1</log4j.version>
+        <cucumber.version>8.0.4</cucumber.version>
 
         <!-- Override on the command line: -Dsuite=src/test/resources/suites/smoke.xml -->
         <suite>src/test/resources/suites/testng.xml</suite>
+        <!-- mvnw test runs both layers; -DskipBdd=true or -DskipTestNG=true runs just one -->
+        <skipTestNG>false</skipTestNG>
+        <skipBdd>false</skipBdd>
     </properties>
 
     <dependencies>
@@ -72,6 +76,38 @@
             <artifactId>log4j-slf4j2-impl</artifactId>
             <version>${log4j.version}</version>
         </dependency>
+        <!-- BDD layer: Gherkin features run through TestNG, sharing the same page objects and API clients -->
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-java</artifactId>
+            <version>${cucumber.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-testng</artifactId>
+            <version>${cucumber.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-picocontainer</artifactId>
+            <version>${cucumber.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <!-- Cucumber 8 writes its html/json reports with Jackson 2 and needs the Jdk8 module -->
+            <groupId>com.fasterxml.jackson.datatype</groupId>
+            <artifactId>jackson-datatype-jdk8</artifactId>
+            <version>${jackson.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.qameta.allure</groupId>
+            <artifactId>allure-cucumber8-jvm</artifactId>
+            <version>${allure.version}</version>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>org.aspectj</groupId>
             <artifactId>aspectjweaver</artifactId>
@@ -92,6 +128,7 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.5.6</version>
                 <configuration>
+                    <skip>${skipTestNG}</skip>
                     <suiteXmlFiles>
                         <suiteXmlFile>${suite}</suiteXmlFile>
                     </suiteXmlFiles>
@@ -103,6 +140,30 @@
                         <allure.results.directory>${project.build.directory}/allure-results</allure.results.directory>
                     </systemPropertyVariables>
                 </configuration>
+                <executions>
+                    <!-- Second run for the Cucumber layer. Allure's TestNG listener is switched off here
+                         so each scenario is reported once, by the Cucumber plugin, with its Gherkin steps. -->
+                    <execution>
+                        <id>bdd</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>test</goal>
+                        </goals>
+                        <configuration>
+                            <skip>${skipBdd}</skip>
+                            <suiteXmlFiles>
+                                <suiteXmlFile>src/test/resources/suites/bdd.xml</suiteXmlFile>
+                            </suiteXmlFiles>
+                            <reportsDirectory>${project.build.directory}/surefire-reports-bdd</reportsDirectory>
+                            <properties>
+                                <property>
+                                    <name>spilistenerstoskip</name>
+                                    <value>io.qameta.allure.testng.AllureTestNg</value>
+                                </property>
+                            </properties>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <groupId>io.qameta.allure</groupId>

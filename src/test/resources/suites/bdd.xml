@@ -1,0 +1,14 @@
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<!-- BDD layer: every Cucumber scenario is one DataProvider row, run 4 at a time. -->
+<suite name="BDD" data-provider-thread-count="4">
+    <listeners>
+        <listener class-name="com.qa.framework.listeners.RetryTransformer"/>
+        <listener class-name="com.qa.framework.listeners.TestListener"/>
+    </listeners>
+
+    <test name="Cucumber features">
+        <classes>
+            <class name="com.qa.bdd.runners.CucumberTestRunner"/>
+        </classes>
+    </test>
+</suite>

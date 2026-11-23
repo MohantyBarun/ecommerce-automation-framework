@@ -22,10 +22,13 @@ jobs:
           distribution: temurin
           java-version: "21"
           cache: maven
-      - name: Run API suite
+      - name: Run API suite (TestNG)
         run: |
           chmod +x mvnw
-          ./mvnw -B test -Dsuite=src/test/resources/suites/api.xml
+          ./mvnw -B test -DskipBdd=true -Dsuite=src/test/resources/suites/api.xml
+      - name: Run API features (Cucumber)
+        if: success() || failure()
+        run: ./mvnw -B test -DskipTestNG=true "-Dcucumber.filter.tags=@api"
       - name: Upload Allure results
         if: always()
         uses: actions/upload-artifact@v5
@@ -61,16 +64,21 @@ jobs:
           done
           echo "Grid did not become ready"; docker compose logs; exit 1
 
-      - name: Run UI + hybrid suite on ${{ matrix.browser }}
+      # retryCount=2: the public practice site overloads often under CI load
+      - name: Run UI + hybrid suite on ${{ matrix.browser }} (TestNG)
         run: |
           chmod +x mvnw
-          ./mvnw -B test \
+          ./mvnw -B test -DskipBdd=true \
             -Dsuite=src/test/resources/suites/ui.xml \
-            -Dbrowser=${{ matrix.browser }} \
-            -Dexecution=remote \
-            -DgridUrl=http://localhost:4444 \
-            -Dheadless=true \
-            -DretryCount=2   # the public practice site overloads often under CI load
+            -Dbrowser=${{ matrix.browser }} -Dexecution=remote -DgridUrl=http://localhost:4444 \
+            -Dheadless=true -DretryCount=2
+
+      - name: Run UI + hybrid features on ${{ matrix.browser }} (Cucumber)
+        if: success() || failure()
+        run: |
+          ./mvnw -B test -DskipTestNG=true "-Dcucumber.filter.tags=not @api" \
+            -Dbrowser=${{ matrix.browser }} -Dexecution=remote -DgridUrl=http://localhost:4444 \
+            -Dheadless=true -DretryCount=2
 
       - name: Upload Allure results
         if: always()

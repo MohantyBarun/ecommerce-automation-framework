@@ -27,6 +27,13 @@ public class CartPage extends BasePage {
         return texts(PRODUCT_NAMES);
     }
 
+    /** Product ids in cart order, read from the row ids ("product-1" -> 1). */
+    public List<Integer> productIds() {
+        return allVisible(CART_ROWS).stream()
+                .map(row -> Integer.parseInt(row.getDomAttribute("id").replace("product-", "")))
+                .toList();
+    }
+
     public int rowCount() {
         return driver.findElements(CART_ROWS).size();
     }
