@@ -1,6 +1,9 @@
 # E-commerce Hybrid UI + API Automation Framework
 
-![Tests](https://github.com/MohantyBarun/ecommerce-automation-framework/actions/workflows/tests.yml/badge.svg)
+[![Tests](https://github.com/MohantyBarun/ecommerce-automation-framework/actions/workflows/tests.yml/badge.svg)](https://github.com/MohantyBarun/ecommerce-automation-framework/actions/workflows/tests.yml)
+[![Allure Report](https://img.shields.io/badge/Allure-live%20report-orange)](https://mohantybarun.github.io/ecommerce-automation-framework/)
+
+**[Live Allure report →](https://mohantybarun.github.io/ecommerce-automation-framework/)** published by CI on every push to `main`, with trend history across runs.
 
 End-to-end test automation framework for [automationexercise.com](https://automationexercise.com),
 a public practice e-commerce site with both a web UI and a REST API.
@@ -21,7 +24,7 @@ a public practice e-commerce site with both a web UI and a REST API.
 | Resilience | Automatic back-off when the public site returns its "under heavy load" page (UI and API); ad interstitials are blocked/escaped |
 | Reporting | Allure with `@Step` page actions, request/response attachments for every API call, and screenshot + URL + page source on failure |
 | Test-data cleanup | Every account a test creates is deleted through the API in `@AfterMethod`, pass or fail |
-| CI/CD | GitHub Actions: API job + UI matrix (chrome, firefox) on a Dockerised Selenium Grid, then one combined Allure report artifact |
+| CI/CD | GitHub Actions: API job + UI matrix (chrome, firefox) on a Dockerised Selenium Grid, then one combined Allure report published to GitHub Pages with run-over-run trends |
 
 ## Project structure
 

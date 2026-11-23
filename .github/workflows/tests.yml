@@ -100,6 +100,23 @@ jobs:
           pattern: allure-results-*
           path: target/allure-results
           merge-multiple: true
+      - name: Restore trend history from the published report
+        # Allure builds its trend charts from the previous report's history/ folder.
+        # On the very first deploy there is none yet, so missing files are fine.
+        run: |
+          mkdir -p target/allure-results/history
+          base="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/history"
+          for f in history.json history-trend.json duration-trend.json categories-trend.json retry-trend.json; do
+            curl -sfL "$base/$f" -o "target/allure-results/history/$f" || echo "no previous $f"
+          done
+      - name: Add CI executor info
+        run: |
+          cat > target/allure-results/executor.json <<EOF
+          {"name": "GitHub Actions", "type": "github",
+           "buildName": "${{ github.workflow }} #${{ github.run_number }}",
+           "buildUrl": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}",
+           "reportUrl": "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"}
+          EOF
       - name: Generate combined Allure report
         run: |
           chmod +x mvnw
@@ -109,3 +126,28 @@ jobs:
         with:
           name: allure-report
           path: target/site/allure-maven-plugin
+      - name: Upload report for GitHub Pages
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: target/site/allure-maven-plugin
+
+  publish:
+    name: Publish report to GitHub Pages
+    needs: report
+    # Only main publishes; pull requests and feature branches keep the artifact only.
+    if: always() && needs.report.result == 'success' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deploy
+        uses: actions/deploy-pages@v5
