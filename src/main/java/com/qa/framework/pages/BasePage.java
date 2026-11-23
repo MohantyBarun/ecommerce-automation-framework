@@ -6,6 +6,7 @@ import org.apache.logging.log4j.Logger;
 import org.openqa.selenium.By;
 import org.openqa.selenium.ElementClickInterceptedException;
 import org.openqa.selenium.JavascriptExecutor;
+import org.openqa.selenium.TimeoutException;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.ExpectedConditions;
@@ -29,6 +30,7 @@ public abstract class BasePage {
     private static final Logger LOG = LogManager.getLogger(BasePage.class);
     private static final By OVERLOAD_PAGE = By.xpath("//h2[contains(., 'under heavy load')]");
     private static final int OVERLOAD_RETRIES = 4;
+    private static final int SAFE_SUBMIT_ATTEMPTS = 3;
 
     protected final WebDriver driver;
     protected final WebDriverWait wait;
@@ -118,6 +120,26 @@ public abstract class BasePage {
             driver.get(url.substring(0, url.length() - AD_VIGNETTE.length()));
             removeAds();
         }
+    }
+
+    /**
+     * Submits a form that is safe to repeat (login, the first signup step) and resubmits it when the
+     * expected result does not appear, which happens when the site swallows the POST with its
+     * overload page. Never use this for non-idempotent submits such as creating an account or paying.
+     */
+    protected void submitIdempotent(String what, Runnable reopenForm, Runnable fillAndSubmit, By expectedResult) {
+        WebDriverWait resultWait = new WebDriverWait(driver, Duration.ofSeconds(8));
+        for (int attempt = 1; attempt <= SAFE_SUBMIT_ATTEMPTS; attempt++) {
+            fillAndSubmit.run();
+            try {
+                resultWait.until(ExpectedConditions.presenceOfElementLocated(expectedResult));
+                return;
+            } catch (TimeoutException e) {
+                LOG.warn("{} did not complete (attempt {}/{}), resubmitting", what, attempt, SAFE_SUBMIT_ATTEMPTS);
+                reopenForm.run();
+            }
+        }
+        throw new IllegalStateException(what + " did not complete after " + SAFE_SUBMIT_ATTEMPTS + " attempts");
     }
 
     /**

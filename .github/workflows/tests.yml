@@ -69,7 +69,8 @@ jobs:
             -Dbrowser=${{ matrix.browser }} \
             -Dexecution=remote \
             -DgridUrl=http://localhost:4444 \
-            -Dheadless=true
+            -Dheadless=true \
+            -DretryCount=2   # the public practice site overloads often under CI load
 
       - name: Upload Allure results
         if: always()
