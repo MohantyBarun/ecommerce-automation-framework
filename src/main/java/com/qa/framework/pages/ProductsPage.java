@@ -1,9 +1,15 @@
 package com.qa.framework.pages;
 
 import io.qameta.allure.Step;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.openqa.selenium.By;
+import org.openqa.selenium.TimeoutException;
 import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.WebDriverWait;
 
+import java.time.Duration;
 import java.util.List;
 
 public class ProductsPage extends BasePage {
@@ -14,6 +20,8 @@ public class ProductsPage extends BasePage {
     private static final By PRODUCT_NAMES = By.cssSelector(".features_items .productinfo p");
     private static final By MODAL_CONTINUE = By.cssSelector("#cartModal .close-modal");
     private static final By MODAL_VIEW_CART = By.cssSelector("#cartModal a[href='/view_cart']");
+    private static final int ADD_TO_CART_ATTEMPTS = 3;
+    private static final Logger LOG = LogManager.getLogger(ProductsPage.class);
 
     public ProductsPage(WebDriver driver) {
         super(driver);
@@ -62,10 +70,28 @@ public class ProductsPage extends BasePage {
         return new ProductDetailsPage(driver);
     }
 
+    /**
+     * Hovering a product card slides .product-overlay over this button. In Firefox the native
+     * click lands on the overlay and is silently lost, so the click is dispatched on the button itself.
+     * <p>
+     * The confirmation modal is opened only by the success callback of the add-to-cart AJAX call.
+     * If it does not appear, the request failed (typically the site's overload response) and nothing
+     * was added, so clicking again cannot create a duplicate cart line.
+     */
     private void clickAddToCart(int productId) {
-        // Hovering a product card slides .product-overlay over this button. In Firefox the native
-        // click lands on the overlay and is silently lost, so dispatch the click on the button itself.
-        jsClick(By.cssSelector(".productinfo a.add-to-cart[data-product-id='" + productId + "']"));
-        visible(MODAL_CONTINUE);
+        By button = By.cssSelector(".productinfo a.add-to-cart[data-product-id='" + productId + "']");
+        WebDriverWait modalWait = new WebDriverWait(driver, Duration.ofSeconds(8));
+        for (int attempt = 1; attempt <= ADD_TO_CART_ATTEMPTS; attempt++) {
+            jsClick(button);
+            try {
+                modalWait.until(ExpectedConditions.visibilityOfElementLocated(MODAL_CONTINUE));
+                return;
+            } catch (TimeoutException e) {
+                LOG.warn("Cart modal did not open for product #{} (attempt {}/{})", productId, attempt,
+                        ADD_TO_CART_ATTEMPTS);
+            }
+        }
+        throw new IllegalStateException("Could not add product #" + productId + " to cart after "
+                + ADD_TO_CART_ATTEMPTS + " attempts");
     }
 }

@@ -122,13 +122,19 @@ public abstract class BasePage {
 
     /**
      * The public practice site sometimes answers with a "under heavy load (queue full)" page.
-     * Reload with back-off instead of failing the test on an environment problem.
+     * Re-open the URL with back-off instead of failing the test on an environment problem.
+     * <p>
+     * This deliberately does a fresh GET rather than refresh(): if the overloaded page was the
+     * answer to a form POST (login, payment), a refresh would resubmit the form. Firefox blocks
+     * that with a "resend data?" dialog, and it could also place a second order. If the POST never
+     * went through, the next step in the test fails clearly and the test-level retry takes over.
      */
     private void recoverFromOverload() {
         for (int attempt = 1; attempt <= OVERLOAD_RETRIES && isPresent(OVERLOAD_PAGE); attempt++) {
-            LOG.warn("Site overloaded at {}, reload {}/{}", driver.getCurrentUrl(), attempt, OVERLOAD_RETRIES);
+            String url = driver.getCurrentUrl();
+            LOG.warn("Site overloaded at {}, reload {}/{}", url, attempt, OVERLOAD_RETRIES);
             sleep(attempt * 3_000L);
-            driver.navigate().refresh();
+            driver.get(url);
         }
         if (isPresent(OVERLOAD_PAGE)) {
             throw new IllegalStateException("Site still overloaded after " + OVERLOAD_RETRIES + " reloads");
