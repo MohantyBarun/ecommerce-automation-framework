@@ -1,0 +1,20 @@
+[
+  {
+    "scenario": "Unregistered email",
+    "email": "not.registered.qa.framework@example.com",
+    "password": "Password@123",
+    "expectedError": "Your email or password is incorrect!"
+  },
+  {
+    "scenario": "Wrong password",
+    "email": "qa.framework.wrong.password@example.com",
+    "password": "definitely-wrong",
+    "expectedError": "Your email or password is incorrect!"
+  },
+  {
+    "scenario": "Malformed email blocked by browser validation",
+    "email": "not-an-email",
+    "password": "Password@123",
+    "expectedError": null
+  }
+]
